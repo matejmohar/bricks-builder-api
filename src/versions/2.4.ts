@@ -97,10 +97,16 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
    * acts through the builder window's app, so it claims the origin before changing anything:
    * otherwise, after a click in the canvas, changes are neither rendered in the canvas nor
    * recorded in history / unsaved changes.
+   *
+   * A key press in a canvas inline editor also pauses the builder window's sync for 400 ms
+   * (`sendPostMessage = false`, Bricks' typing throttle, mirrored from the canvas). A change made
+   * in that window is never sent to the canvas, so the library re-enables it too, as Bricks does
+   * when an element gets selected.
    */
   const fromBuilderWindow = (): void => {
     const s = state();
     if ('messageOrigin' in s && s.messageOrigin !== 'main') s.messageOrigin = 'main';
+    if (s.sendPostMessage === false) s.sendPostMessage = true;
   };
 
   const allElements = (): RawElement[] => {
@@ -183,8 +189,17 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
     canDelete: (el) => !!call('$_isDeletable', el),
     deleteElement(el) {
       fromBuilderWindow();
+      const snapshot = JSON.parse(JSON.stringify(el)) as RawElement;
       // Must be the element object; an id is silently ignored by Bricks.
       call('$_deleteElement', el);
+      // Bricks' own UI deletes through `$_state.deleteElement`, which both apps watch, because
+      // $_deleteElement pauses the content sync to the canvas (sendPostMessage) while it runs.
+      // Calling it directly only updates the builder window, so tell the canvas app the same way
+      // that state key would. `ignoreOrigin`: the canvas may not have seen the messageOrigin
+      // change yet (that sync runs after this synchronous message).
+      if (!driver.findElement(el.id)) {
+        fn('$_postMessage')?.({ key: 'deleteElement', value: snapshot, ignoreOrigin: true });
+      }
     },
     wrapActive(tag) {
       fromBuilderWindow();

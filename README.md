@@ -256,7 +256,9 @@ which of the two the user last interacted with. The builder window's history wat
 the canvas only act on changes made while it is `'main'`. Since the library always acts through the
 builder window's app, every call that changes builder state first sets it to `'main'` (as Bricks'
 own builder-window mouse and focus handlers do). Without that, a change made right after a click in
-the canvas would neither show up in the canvas nor be undoable.
+the canvas would neither show up in the canvas nor be undoable. For the same reason it lifts Bricks'
+400 ms typing throttle on that sync (`sendPostMessage`), which a key press in a canvas inline editor
+starts.
 
 ## Supported versions
 

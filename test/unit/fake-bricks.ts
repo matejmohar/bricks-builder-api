@@ -221,6 +221,9 @@ export function createFakeBricks(options: FakeOptions = {}): FakeBricks {
       copyTree(element, element.parent ? String(element.parent) : 0, index + 1);
     },
     $_isDeletable: (el: RawElement) => el.deletable !== false,
+    $_postMessage(message: unknown) {
+      calls.push(['$_postMessage', message]);
+    },
     $_deleteElement(el: unknown) {
       calls.push(['$_deleteElement', el]);
       if (!el || typeof el !== 'object') return; // ids are silently ignored, like Bricks

@@ -185,6 +185,8 @@ export interface RawState {
   activePanel?: string;
   /** Which of Bricks' two apps the last interaction came from: 'main' (builder window) or 'iframe' (canvas). */
   messageOrigin?: string;
+  /** False while Bricks throttles state sync between its two apps (inline typing). */
+  sendPostMessage?: boolean;
   [key: string]: unknown;
 }
 

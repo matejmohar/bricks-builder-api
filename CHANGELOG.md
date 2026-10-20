@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
   rendered in the canvas, and were missing from Bricks' undo history and unsaved changes. Bricks
   only records and syncs changes whose `$_state.messageOrigin` is the builder window; the 2.4
   adapter now claims it before every state change.
+- Changes made within 400 ms of a key press in a canvas inline editor (Bricks' typing throttle,
+  `$_state.sendPostMessage = false`) never reached the canvas. The adapter re-enables the sync
+  before changing anything, as Bricks does when an element is selected.
 
 ## [0.1.0] - 2026-10-20
 

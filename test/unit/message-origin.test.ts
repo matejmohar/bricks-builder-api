@@ -5,7 +5,9 @@ import { createFakeBricks, samplePage, tick } from './fake-bricks';
 /**
  * Bricks only records history for, and syncs to the canvas, changes made while
  * `$_state.messageOrigin` is 'main'. After a click in the canvas it is 'iframe', so every
- * library call that changes builder state has to claim the builder window first.
+ * library call that changes builder state has to claim the builder window first. A key press
+ * in a canvas inline editor also sets `sendPostMessage` to false for 400 ms, which blocks the
+ * sync of the change; the library turns it back on.
  */
 function setup() {
   const fake = createFakeBricks();
@@ -13,6 +15,7 @@ function setup() {
   const bricks = createBricksBuilder(fake.gp, fake.win);
   const fromCanvas = () => {
     fake.state.messageOrigin = 'iframe';
+    fake.state.sendPostMessage = false; // a key press in a canvas inline editor
   };
   return { fake, bricks, fromCanvas, ...page };
 }
@@ -42,6 +45,7 @@ describe("messageOrigin: actions claim the builder window ('main')", () => {
     t.fromCanvas();
     await act(t);
     expect(t.fake.state.messageOrigin).toBe('main');
+    expect(t.fake.state.sendPostMessage).toBe(true);
   });
 
   it('undo / redo', async () => {
@@ -70,12 +74,15 @@ describe("messageOrigin: actions claim the builder window ('main')", () => {
     t.bricks.ui.isTyping();
     t.bricks.ui.breakpoints();
     expect(t.fake.state.messageOrigin).toBe('iframe');
+    expect(t.fake.state.sendPostMessage).toBe(false);
   });
 
-  it('does not add the key to a state that has none (older/newer Bricks)', () => {
+  it('does not add the keys to a state that has none (older/newer Bricks)', () => {
     const t = setup();
     delete t.fake.state.messageOrigin;
+    delete t.fake.state.sendPostMessage;
     t.bricks.selection.set(t.heading.id);
     expect('messageOrigin' in t.fake.state).toBe(false);
+    expect('sendPostMessage' in t.fake.state).toBe(false);
   });
 });

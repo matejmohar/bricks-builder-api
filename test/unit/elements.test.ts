@@ -181,6 +181,28 @@ describe('elements.delete', () => {
   });
 });
 
+describe('elements.delete: canvas sync', () => {
+  it("mirrors the delete to the canvas app as Bricks' deleteElement message", () => {
+    const { fake, bricks, heading } = setup();
+    bricks.elements.delete(heading.id);
+    const posts = fake.calls.filter((c) => c[0] === '$_postMessage');
+    expect(posts).toHaveLength(1);
+    const message = posts[0]![1] as { key: string; value: { id: string; name: string }; ignoreOrigin: boolean };
+    expect(message.key).toBe('deleteElement');
+    expect(message.ignoreOrigin).toBe(true);
+    expect(message.value).toMatchObject({ id: heading.id, name: 'heading' });
+    // A plain snapshot, not the live element.
+    expect(message.value).not.toBe(heading);
+  });
+
+  it('does not message the canvas when Bricks did not delete', () => {
+    const { fake, bricks, heading } = setup();
+    fake.gp.$_deleteElement = () => undefined;
+    expect(() => bricks.elements.delete(heading.id)).toThrow();
+    expect(fake.calls.some((c) => c[0] === '$_postMessage')).toBe(false);
+  });
+});
+
 describe('elements.wrap', () => {
   it("wraps the selection in Bricks' default wrap element and resolves once it is selected", async () => {
     const { bricks, fake, heading, container } = setup();

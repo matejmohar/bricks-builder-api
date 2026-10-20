@@ -64,4 +64,39 @@ test.describe('actions after a click in the canvas', () => {
     await expect(frame.locator(`#brxe-${inserted}`)).toHaveCount(1);
     expect(byId(await tree(page), inserted)?.parent).toBe('conone');
   });
+
+  test('a key press in the inline-edited heading does not keep the change out of the canvas', async ({ page, builder }) => {
+    void builder;
+    const frame = page.frameLocator('#bricks-builder-iframe');
+    await frame.locator('#brxe-headon').click();
+    await expect.poll(() => page.evaluate(() => window.bricks.selection.get()?.id)).toBe('headon');
+    // A key press in Bricks' inline editor pauses the builder window's sync for 400 ms
+    // (Alt, as when a modifier shortcut starts there).
+    await page.keyboard.press('Alt');
+    await expect.poll(() => page.evaluate(() => window.bricks.unstable.state.sendPostMessage), { timeout: 300 }).toBe(false);
+    const copy = await page.evaluate(() => window.bricks.elements.duplicate().id);
+    await expect(frame.locator(`#brxe-${copy}`), 'the canvas renders the copy').toHaveCount(1);
+    await settle(page);
+    await frame.locator('#brxe-headon').click();
+    await page.keyboard.press('Alt');
+    await page.evaluate(() => window.bricks.elements.delete('headon'));
+    await expect(frame.locator('#brxe-headon'), 'the canvas drops the deleted heading').toHaveCount(0);
+  });
+});
+
+test.describe('canvas sync', () => {
+  test('delete() removes the element from the canvas, not only from the data', async ({ page, builder }) => {
+    void builder;
+    const frame = page.frameLocator('#bricks-builder-iframe');
+    // headon's next sibling (butone) has non-empty settings, so selecting it after the delete
+    // does not make Bricks re-send the content by accident.
+    await page.evaluate(() => window.bricks.selection.set('headon'));
+    await expect(frame.locator('#brxe-headon')).toHaveCount(1);
+    await page.evaluate(() => window.bricks.elements.delete());
+    await expect(frame.locator('#brxe-headon')).toHaveCount(0);
+    await expect(frame.locator('#brxe-butone')).toHaveCount(1);
+    await page.evaluate(() => window.bricks.elements.delete('blkone'));
+    await expect(frame.locator('#brxe-blkone')).toHaveCount(0);
+    await expect(frame.locator('#brxe-txtone'), 'children go too').toHaveCount(0);
+  });
 });
