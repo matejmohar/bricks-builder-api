@@ -1,0 +1,57 @@
+{
+  "name": "@martej/bricks-builder-api",
+  "version": "0.1.0",
+  "description": "Unofficial, typed JavaScript/TypeScript API for the Bricks Builder (WordPress) editor.",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "npm run build && playwright test",
+    "compat": "node scripts/render-compat.mjs",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "bricks",
+    "bricks-builder",
+    "wordpress",
+    "page-builder",
+    "api",
+    "unofficial"
+  ],
+  "author": "Martej",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.7",
+    "vitest": "^3.2.7"
+  },
+  "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/bricks-builder-api.iife.js",
+  "jsdelivr": "./dist/bricks-builder-api.iife.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./iife": "./dist/bricks-builder-api.iife.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "COMPATIBILITY.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  }
+}
