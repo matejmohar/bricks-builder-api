@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createBricksBuilder } from '../../src/connect';
-import { InvalidArgumentError, NoSelectionError } from '../../src/errors';
+import { ElementNotFoundError, InvalidArgumentError, NoSelectionError, UnsupportedError } from '../../src/errors';
 import { createFakeBricks, samplePage } from './fake-bricks';
 
 function setup(opts = {}) {
@@ -122,5 +122,42 @@ describe('ui.toggleClasses', () => {
     expect(bricks.ui.toggleClasses(true)).toBe(true);
     bricks.selection.set(null);
     expect(bricks.ui.toggleClasses(false)).toBe(false); // hiding works without selection
+  });
+});
+
+describe('ui.startRename', () => {
+  it('opens Bricks\' rename field for the selection and focuses it', async () => {
+    const { bricks, fake, heading } = setup();
+    bricks.selection.set(heading.id);
+    expect(await bricks.ui.startRename()).toBe(true);
+    expect(fake.state.renameMode).toBe(true);
+    expect(fake.renameInput.forId).toBe(heading.id);
+    expect(fake.win.document.activeElement).toBe(fake.renameInput);
+    expect(fake.renameInput.selected).toBe(true);
+  });
+
+  it('selects the element first when an id is given', async () => {
+    const { bricks, fake, button } = setup();
+    expect(await bricks.ui.startRename(button.id)).toBe(true);
+    expect(bricks.selection.get()?.id).toBe(button.id);
+    expect(fake.renameInput.forId).toBe(button.id);
+  });
+
+  it('resolves false and leaves rename mode when the Structure panel does not show the element', async () => {
+    const { bricks, fake, heading } = setup();
+    fake.hiddenInStructure.add(heading.id);
+    expect(await bricks.ui.startRename(heading.id, { timeout: 40 })).toBe(false);
+    expect(fake.state.renameMode).toBe(false);
+  });
+
+  it('needs a selection or a known id, and the capability', async () => {
+    const { bricks } = setup();
+    await expect(bricks.ui.startRename()).rejects.toThrow(NoSelectionError);
+    await expect(bricks.ui.startRename('nope')).rejects.toThrow(ElementNotFoundError);
+    const fake = createFakeBricks();
+    delete fake.state.renameMode;
+    const old = createBricksBuilder(fake.gp, fake.win);
+    expect(old.supports('ui.rename')).toBe(false);
+    await expect(old.ui.startRename()).rejects.toThrow(UnsupportedError);
   });
 });

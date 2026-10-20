@@ -62,6 +62,10 @@ export interface Driver {
   setActiveBreakpoint(key: string): void;
   classesVisible(): boolean;
   setClassesVisible(visible: boolean): void;
+  /** Bricks' Structure panel rename mode (the active element's label becomes an input). */
+  setRenameMode(on: boolean): void;
+  /** The Structure panel's rename input for an element, once Bricks rendered it. */
+  renameInput(id: string): HTMLInputElement | null;
 }
 
 /** A version adapter: which Bricks internals each capability needs, and how to drive them. */

@@ -1,6 +1,6 @@
-import type { Context } from './context';
+import { waitFor, type Context } from './context';
 import { InvalidArgumentError, NoSelectionError } from './errors';
-import type { Breakpoint, PanelName } from './types';
+import type { Breakpoint, ElementId, PanelName } from './types';
 
 const PANELS: readonly PanelName[] = ['structure', 'element', 'elements'];
 
@@ -29,6 +29,14 @@ export interface UiApi {
    * Showing it requires a selection.
    */
   toggleClasses(force?: boolean): boolean;
+  /**
+   * Opens Bricks' own rename field for an element in the Structure panel (like double-clicking
+   * it there), focused with the label selected. Selects the element first when `id` is given.
+   * Resolves `true` once the field has focus, or `false` when the element is not shown in the
+   * Structure panel (the panel is closed or a parent is collapsed); rename mode is left again then.
+   * Bricks saves the label as the user types and leaves the field on Enter, Escape or blur.
+   */
+  startRename(id?: ElementId, options?: { timeout?: number }): Promise<boolean>;
 }
 
 export function createUi(ctx: Context): UiApi {
@@ -104,6 +112,20 @@ export function createUi(ctx: Context): UiApi {
       if (next && !ctx.selected()) throw new NoSelectionError('ui.toggleClasses');
       driver.setClassesVisible(next);
       return next;
+    },
+    async startRename(id, options = {}) {
+      ctx.require('ui.rename');
+      const el = ctx.target('ui.startRename', id);
+      if (driver.getActiveId() !== el.id) driver.setActiveId(el.id);
+      driver.setRenameMode(true);
+      const input = await waitFor(() => driver.renameInput(el.id) ?? undefined, options.timeout ?? 500, 16);
+      if (!input) {
+        driver.setRenameMode(false);
+        return false;
+      }
+      input.focus();
+      input.select?.();
+      return true;
     },
   };
 }

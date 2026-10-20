@@ -61,5 +61,8 @@
   },
   "ui.toggleClasses": {
     "2.4.3": "pass"
+  },
+  "ui.rename": {
+    "2.4.3": "pass"
   }
 }

@@ -36,6 +36,10 @@ export interface FakeBricks {
   setActiveDomElement(el: FakeElementNode | null): void;
   iframeDoc: { activeElement: FakeElementNode | null };
   iframe: FakeElementNode;
+  /** Element ids the fake Structure panel does not show (collapsed parent). */
+  hiddenInStructure: Set<string>;
+  /** The fake rename input (rendered while renameMode is on, for the active element). */
+  renameInput: FakeElementNode & { focus(): void; select(): void; selected: boolean; forId: string | null };
 }
 
 let counter = 0;
@@ -75,6 +79,7 @@ export function createFakeBricks(options: FakeOptions = {}): FakeBricks {
     iframeLoaded: options.iframeLoaded ?? true,
     showCommandPalette: false,
     showElementClasses: false,
+    renameMode: false,
     breakpoints: [
       { base: true, key: 'desktop', label: 'Desktop', width: 1279 },
       { key: 'tablet_portrait', label: 'Tablet portrait', width: 991 },
@@ -325,11 +330,30 @@ export function createFakeBricks(options: FakeOptions = {}): FakeBricks {
     contentDocument: iframeDoc,
   };
   const host = { __vue_app__: { config: { globalProperties: gp } } };
+  const hiddenInStructure = new Set<string>();
+  const renameInput = {
+    tagName: 'INPUT',
+    selected: false,
+    forId: null as string | null,
+    focus() {
+      doc.activeElement = renameInput;
+    },
+    select() {
+      renameInput.selected = true;
+    },
+    closest: (sel: string) => (sel === '.structure-item' ? {} : null),
+  };
   const doc = {
     activeElement: { tagName: 'BODY' } as FakeElementNode | null,
     querySelector(sel: string) {
       if (sel === '.brx-body') return options.dataVApp ? { tagName: 'BODY' } : host;
       if (sel === '#bricks-builder-iframe') return iframe;
+      // Like Bricks: the Structure panel shows an input for the active element in rename mode.
+      const m = /^#bricks-structure li\[data-id="([\w-]+)"\] > \.structure-item \.title input$/.exec(sel);
+      if (m && raw.renameMode && String(raw.activeId) === m[1] && !hiddenInStructure.has(m[1]!)) {
+        renameInput.forId = m[1]!;
+        return renameInput;
+      }
       return null;
     },
     querySelectorAll(sel: string) {
@@ -366,6 +390,8 @@ export function createFakeBricks(options: FakeOptions = {}): FakeBricks {
     },
     iframeDoc,
     iframe,
+    hiddenInStructure,
+    renameInput,
   };
 }
 

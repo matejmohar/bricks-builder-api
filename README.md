@@ -207,6 +207,7 @@ Bricks records history with a debounced watcher: an action becomes one history e
 | `breakpoints()` | `Breakpoint[]` | `{ key, label, width, base, active }` for each non-paused breakpoint |
 | `setBreakpoint(key)` | `void` | switch the canvas breakpoint; `InvalidArgumentError` for unknown keys |
 | `toggleClasses(force?)` | `boolean` | toggle the selected element's class input (like Enter in the builder); returns the new state. Showing it needs a selection |
+| `startRename(id?, { timeout? })` | `Promise<boolean>` | open Bricks' own rename field for the element in the Structure panel (like double-clicking it there), focused with the label selected; selects the element first when `id` is given. `false` when the Structure panel does not show the element (closed panel, collapsed parent). Bricks stores the label as the user types |
 
 ### Capabilities
 
@@ -214,7 +215,7 @@ Bricks records history with a debounced watcher: an action becomes one history e
 `elements.insert`, `elements.duplicate`, `elements.delete`, `elements.wrap`, `elements.rename`,
 `clipboard.copy`, `clipboard.paste`, `history.undo`, `history.redo`, `document.save`,
 `document.unsavedChanges`, `ui.isTyping`, `ui.commandPalette`, `ui.showPanel`, `ui.breakpoints`,
-`ui.toggleClasses`.
+`ui.toggleClasses`, `ui.rename`.
 
 At connect time each capability's required Bricks internals are probed. Calling a method whose
 capability is missing throws `UnsupportedError` (with `.capability`).

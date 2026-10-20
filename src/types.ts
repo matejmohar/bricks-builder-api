@@ -31,7 +31,8 @@ export type Capability =
   | 'ui.commandPalette'
   | 'ui.showPanel'
   | 'ui.breakpoints'
-  | 'ui.toggleClasses';
+  | 'ui.toggleClasses'
+  | 'ui.rename';
 
 /** Every capability, in a stable order (used for probing and the compat matrix). */
 export const CAPABILITIES: readonly Capability[] = [
@@ -56,6 +57,7 @@ export const CAPABILITIES: readonly Capability[] = [
   'ui.showPanel',
   'ui.breakpoints',
   'ui.toggleClasses',
+  'ui.rename',
 ] as const;
 
 export type CapabilityMap = Record<Capability, boolean>;

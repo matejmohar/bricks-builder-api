@@ -158,6 +158,12 @@ const checks: Record<Capability, Check> = {
     expect(await page.evaluate(() => window.bricks.unstable.state.showElementClasses)).toBe(true);
     expect(await page.evaluate(() => window.bricks.ui.toggleClasses(false))).toBe(false);
   },
+  'ui.rename': async (page) => {
+    await page.evaluate(() => window.bricks.ui.showPanel('structure'));
+    expect(await page.evaluate(() => window.bricks.ui.startRename('headon'))).toBe(true);
+    await expect(page.locator('#bricks-structure li[data-id="headon"] > .structure-item .title input')).toBeFocused();
+    await page.keyboard.press('Escape');
+  },
 };
 
 test('compatibility matrix', async ({ page, builder, postId }) => {
@@ -191,6 +197,7 @@ test('compatibility matrix', async ({ page, builder, postId }) => {
     'ui.showPanel',
     'ui.breakpoints',
     'ui.toggleClasses',
+    'ui.rename',
   ];
   expect([...order].sort()).toEqual([...CAPABILITIES].sort());
 

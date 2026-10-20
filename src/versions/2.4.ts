@@ -52,6 +52,7 @@ export const requirements: Record<Capability, readonly Requirement[]> = {
   'ui.showPanel': ['$_showPanel'],
   'ui.breakpoints': ['state.breakpoints', 'state.breakpointActive'],
   'ui.toggleClasses': ['state.showElementClasses'],
+  'ui.rename': ['state.renameMode', 'state.activeId', ...LOOKUP],
 };
 
 /** Normalises Bricks' "no selection" values (undefined, null, 0, false, '') to null. */
@@ -282,6 +283,16 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
     setClassesVisible(visible) {
       fromBuilderWindow();
       state().showElementClasses = visible;
+    },
+    // Double-clicking a Structure panel item sets $_state.renameMode; Bricks then renders an input
+    // in place of the active element's label, and leaves rename mode on blur, Enter or Escape.
+    setRenameMode(on) {
+      fromBuilderWindow();
+      state().renameMode = on;
+    },
+    renameInput(id) {
+      if (!/^[\w-]+$/.test(id)) return null;
+      return win.document.querySelector<HTMLInputElement>(`#bricks-structure li[data-id="${id}"] > .structure-item .title input`);
     },
   };
   return driver;

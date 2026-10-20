@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `ui.startRename(id?)` (capability `ui.rename`): opens Bricks' own rename field for an element
+  in the Structure panel, focused, like double-clicking it there (sets `$_state.renameMode` and
+  focuses the input Bricks renders for the active element). Resolves `false` when the Structure
+  panel does not show the element.
+
 ### Fixed
 
 - Actions called after the user clicked in the canvas (selection, insert, duplicate, delete, wrap,

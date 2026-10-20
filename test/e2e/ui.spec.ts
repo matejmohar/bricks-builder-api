@@ -115,4 +115,18 @@ test.describe('ui', () => {
     expect(await page.evaluate(() => window.bricks.ui.toggleClasses())).toBe(false);
     expect(await page.evaluate(() => window.bricks.unstable.state.showElementClasses)).toBe(false);
   });
+
+  test('startRename() opens Bricks\' own rename field in the Structure panel', async ({ page, builder }) => {
+    void builder;
+    await page.evaluate(() => window.bricks.ui.showPanel('structure'));
+    expect(await page.evaluate(() => window.bricks.ui.startRename('headon'))).toBe(true);
+    expect(await page.evaluate(() => window.bricks.selection.get()?.id)).toBe('headon');
+    const input = page.locator('#bricks-structure li[data-id="headon"] > .structure-item .title input');
+    await expect(input).toBeFocused();
+    await page.keyboard.type('Renamed by startRename');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() => window.bricks.elements.get('headon')?.label)).toBe('Renamed by startRename');
+    expect(await page.evaluate(() => window.bricks.unstable.state.renameMode)).toBe(false);
+    await expect(page.locator('#bricks-structure li[data-id="headon"] > .structure-item .title')).toContainText('Renamed by startRename');
+  });
 });

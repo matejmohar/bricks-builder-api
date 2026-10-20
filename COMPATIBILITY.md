@@ -29,6 +29,7 @@ history entry, undo and redo. "–" means not tested on that version.
 | `ui.showPanel` | pass |
 | `ui.breakpoints` | pass |
 | `ui.toggleClasses` | pass |
+| `ui.rename` | pass |
 
 To add a version: run `npm run test:e2e` against a site with that Bricks version
 (`BRICKS_URL=...`), then `npm run compat`.

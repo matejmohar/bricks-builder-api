@@ -37,6 +37,7 @@ describe("messageOrigin: actions claim the builder window ('main')", () => {
     ['ui.showPanel', (t) => t.bricks.ui.showPanel('structure')],
     ['ui.setBreakpoint', (t) => t.bricks.ui.setBreakpoint('tablet_portrait')],
     ['ui.toggleClasses', (t) => t.bricks.ui.toggleClasses(true)],
+    ['ui.startRename', (t) => t.bricks.ui.startRename()],
   ];
 
   it.each(cases)('%s', async (_name, act) => {
