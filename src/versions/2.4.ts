@@ -36,7 +36,7 @@ export const requirements: Record<Capability, readonly Requirement[]> = {
   'selection.onChange': ['$_watch', 'state.activeId', ...LOOKUP],
   'selection.navigate': ['state.activeId', ...LOOKUP, ROOTS],
   'elements.get': [...LOOKUP],
-  'elements.insert': ['$_createElement', '$_addNewElement', '$_getElementConfig', 'state.insertAfter', ...LOOKUP],
+  'elements.insert': ['$_createElement', '$_addNewElement', '$_getElementConfig', ...LOOKUP, ROOTS],
   'elements.duplicate': ['$_cloneElement', '$_isCloneable', ...LOOKUP, ROOTS],
   'elements.delete': ['$_deleteElement', '$_isDeletable', ...LOOKUP],
   'elements.wrap': ['$_wrapInNestable', 'state.activeId', ...LOOKUP],
@@ -111,9 +111,11 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
       s.activeId = id;
     },
     watchActiveId(cb) {
+      // Watch the *effective* selection: after a delete Bricks keeps the stale
+      // activeId for a tick, which $_activeElement already resolves to nothing.
       const stop = call(
         '$_watch',
-        () => normalizeId(state().activeId),
+        () => driver.getActiveId(),
         (next: string | null, prev: string | null) => cb(next, prev),
       );
       return typeof stop === 'function' ? (stop as () => void) : () => {};
@@ -143,16 +145,19 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
       return !!cfg && cfg.name === name;
     },
 
-    insertElement(name, outside) {
+    insertElement(name, placement) {
       const element = call('$_createElement', { name });
-      const s = state();
-      if (outside) s.insertAfter = true;
-      try {
-        // $_addNewElement re-creates the element (new id) and returns the inserted one.
-        return call('$_addNewElement', { element }) as RawElement | undefined;
-      } finally {
-        if (outside) s.insertAfter = false;
-      }
+      // $_addNewElement re-creates the element (new id) and returns the inserted one.
+      if (!placement) return call('$_addNewElement', { element }) as RawElement | undefined;
+      // Explicit position, the way Bricks' own drop handling calls it. `isDropTarget`
+      // makes Bricks use parent/index as given (and ignore the modifier-key
+      // "insertAfter" flag, whose index handling is imprecise in 2.4).
+      return call('$_addNewElement', {
+        element,
+        parent: placement.parentId,
+        index: placement.index,
+        isDropTarget: true,
+      }) as RawElement | undefined;
     },
     canClone: (el) => !!call('$_isCloneable', el),
     cloneElement(el, index) {

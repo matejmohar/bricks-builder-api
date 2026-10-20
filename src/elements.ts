@@ -11,7 +11,7 @@ export interface ElementsApi {
   /**
    * Inserts a new element of type `name` (e.g. `'heading'`) relative to the
    * selection, the way the Elements panel does. The selection does not change.
-   * Returns the inserted element.
+   * Returns the inserted element. See InsertOptions for positions.
    */
   insert(name: string, options?: InsertOptions): ElementInfo;
   /** Duplicates the element (default: the selection). Returns the copy, placed right after it. */
@@ -49,7 +49,21 @@ export function createElements(ctx: Context): ElementsApi {
       if (typeof name !== 'string' || !driver.isKnownElementType(name)) {
         throw new InvalidArgumentError(`Unknown element type "${String(name)}"`);
       }
-      const inserted = driver.insertElement(name, position === 'outside');
+      let placement: { parentId: string | 0; index: number } | undefined;
+      const sel = position === 'outside' ? ctx.selected() : undefined;
+      if (sel) {
+        // One level up: right after the selected nestable, or right after the
+        // selected element's parent (a root-level leaf: right after itself).
+        const parent = parentIdOf(sel) ? driver.findElement(parentIdOf(sel) as string) : undefined;
+        const anchor = driver.isNestable(sel) ? sel : (parent ?? sel);
+        const containerId = parentIdOf(anchor);
+        const siblings = containerId
+          ? (driver.findElement(containerId)?.children ?? [])
+          : driver.rootElements().map((e) => e.id);
+        const at = siblings.indexOf(anchor.id);
+        placement = { parentId: containerId ?? 0, index: at === -1 ? siblings.length : at + 1 };
+      }
+      const inserted = driver.insertElement(name, placement);
       const el = inserted && typeof inserted.id === 'string' ? driver.findElement(inserted.id) : undefined;
       if (!el) throw new NotAllowedError(`Bricks did not insert "${name}" (missing permission?)`);
       return ctx.info(el);

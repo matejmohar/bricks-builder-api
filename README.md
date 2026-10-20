@@ -133,7 +133,7 @@ interface ElementInfo {
 | --- | --- | --- |
 | `get()` | `ElementInfo \| null` | the selected element. Synchronous, reflects `set()` immediately |
 | `set(id \| null)` | `ElementInfo \| null` | select an element (clears a multi-selection), or clear with `null`. `ElementNotFoundError` for unknown ids |
-| `onChange((next, prev) => void)` | `() => void` | called on every selection change, from any source. Runs asynchronously (Bricks batches reactive updates, once per tick). Returns an unsubscribe function |
+| `onChange((next, prev) => void)` | `() => void` | called on every selection change, from any source (canvas, Structure panel, API, deletes). Runs asynchronously on the next macrotask with the then-current selection, so transient changes collapse into one call. Returns an unsubscribe function |
 | `parent()` | `ElementInfo \| null` | select the parent; `null` (unchanged) at root level |
 | `firstChild()` | `ElementInfo \| null` | select the first child; `null` (unchanged) for leaves / empty nestables |
 | `next()` / `previous()` | `ElementInfo \| null` | select the next/previous sibling (root-level elements are siblings too); `null` (unchanged) at the ends |
@@ -147,7 +147,7 @@ The navigation methods throw `NoSelectionError` when nothing is selected.
 | `get(id)` | `ElementInfo \| null` | element in the active area (page content, or header/footer template) |
 | `insert(name, { position? })` | `ElementInfo` | insert a new element, like clicking it in the Elements panel. The selection does not change. `InvalidArgumentError` for unknown element types |
 | `duplicate(id?)` | `ElementInfo` | duplicate (with children) right after the original; the selection stays on the original |
-| `delete(id?)` | `void` | delete with children; Bricks moves the selection |
+| `delete(id?)` | `void` | delete with children. Bricks then selects another element a tick later (the next sibling in 2.4.3); in between, `selection.get()` returns `null` |
 | `wrap(tag?)` | `Promise<ElementInfo>` | wrap the selection in `'div' \| 'block' \| 'container' \| 'section'` (default: Bricks' "wrap element" setting, usually `'block'`). Resolves with the wrapper once Bricks has selected it |
 | `rename(label, id?)` | `ElementInfo` | set the Structure-panel label; `''` or `null` resets it |
 
@@ -163,8 +163,12 @@ immediately). This is the same code path the panel's own rename input uses. Elem
 - `'auto'` (default) — Bricks' default: inside the selected element if it is nestable (as last
   child), otherwise right after it; with no selection at the end of the page. A `section` always
   goes to the root level and gets a `container` child, as in the builder.
-- `'outside'` — Bricks' "insert after" mode (what holding the modifier key does in the Elements
-  panel): the element goes into the selected element's *grandparent*, i.e. outside its parent.
+- `'outside'` — one level up, like Bricks' "insert after" mode (holding the modifier key in the
+  Elements panel): directly after the selected element if it is nestable, otherwise directly after
+  the selected element's parent. A root-level leaf gets the new element right after itself; with
+  no selection it behaves like `'auto'`. (Bricks' own "insert after" flag computes the index within
+  that level imprecisely in 2.4, so the library passes an explicit parent/index to
+  `$_addNewElement` instead.)
 
 ### `bricks.clipboard`
 

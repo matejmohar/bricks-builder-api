@@ -89,10 +89,12 @@ export interface InsertOptions {
    * - `'auto'` (default): Bricks' default. Inside the selected element when it
    *   is nestable (as last child), otherwise directly after it. With no
    *   selection, at the end of the page.
-   * - `'outside'`: Bricks' "insert after" mode (what holding the modifier key
-   *   does in the Elements panel): the element is inserted into the selected
-   *   element's grandparent, i.e. outside the selected element's parent.
-   *   For a root-level selection it is inserted after the selection.
+   * - `'outside'`: one level up, like Bricks' "insert after" mode (holding the
+   *   modifier key in the Elements panel): directly after the selected element
+   *   when it is nestable, otherwise directly after the selected element's
+   *   parent. A root-level leaf gets the new element directly after itself.
+   *   With no selection, same as `'auto'`. Sections always go to the root
+   *   level (Bricks rule).
    */
   position?: InsertPosition;
 }

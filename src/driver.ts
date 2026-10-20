@@ -21,7 +21,12 @@ export interface Driver {
   isKnownElementType(name: string): boolean;
 
   // element actions
-  insertElement(name: string, outside: boolean): RawElement | undefined;
+  /**
+   * Inserts like the Elements panel. Without `placement`, Bricks decides from
+   * the selection; with it, the element goes to `placement.parentId`
+   * (0 = root) at `placement.index`.
+   */
+  insertElement(name: string, placement?: { parentId: string | 0; index: number }): RawElement | undefined;
   canClone(el: RawElement): boolean;
   cloneElement(el: RawElement, index: number): void;
   canDelete(el: RawElement): boolean;

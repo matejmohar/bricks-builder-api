@@ -59,22 +59,46 @@ describe('elements.insert', () => {
     expect(el.childIds).toHaveLength(1); // Bricks adds a container
   });
 
-  it("position 'outside' sets Bricks' insertAfter flag and resets it", () => {
-    const { bricks, fake, heading, section } = setup();
+  it("position 'outside' after a leaf: right after the leaf's parent", () => {
+    const { fake, bricks, heading, container, section } = setup();
     bricks.selection.set(heading.id);
     const el = bricks.elements.insert('text-basic', { position: 'outside' });
-    expect(fake.calls).toContainEqual(['$_addNewElement', 'text-basic', true]);
-    expect(fake.state.insertAfter).toBe(false);
+    expect(fake.calls).toContainEqual(['$_addNewElement', 'text-basic', { parent: section.id, index: 1 }]);
     expect(el.parentId).toBe(section.id);
+    expect(fake.byId(section.id)!.children).toEqual([container.id, el.id]);
+    expect(bricks.selection.get()?.id).toBe(heading.id);
   });
 
-  it('resets insertAfter even when Bricks throws', () => {
-    const { bricks, fake, heading } = setup();
-    fake.gp.$_addNewElement = () => {
-      throw new Error('bricks failed');
-    };
+  it("position 'outside' with a nestable selected: right after it", () => {
+    const { fake, bricks, container, section } = setup();
+    const block = fake.add('block', container.id);
+    fake.add('heading', block.id);
+    bricks.selection.set(block.id);
+    const el = bricks.elements.insert('button', { position: 'outside' });
+    expect(el.parentId).toBe(container.id);
+    expect(fake.byId(container.id)!.children!.slice(-2)).toEqual([block.id, el.id]);
+    bricks.selection.set(section.id); // root nestable -> root level, after it
+    const root = bricks.elements.insert('block', { position: 'outside' });
+    expect(fake.calls).toContainEqual(['$_addNewElement', 'block', { parent: 0, index: 1 }]);
+    expect(root.parentId).toBeNull();
+  });
+
+  it("position 'outside' for a root-level leaf goes after it; without selection it is 'auto'", () => {
+    const { fake, bricks } = setup();
+    const leaf = fake.add('heading');
+    bricks.selection.set(leaf.id);
+    bricks.elements.insert('button', { position: 'outside' });
+    expect(fake.calls.at(-1)).toEqual(['$_addNewElement', 'button', { parent: 0, index: 3 }]);
+    bricks.selection.set(null);
+    bricks.elements.insert('button', { position: 'outside' });
+    expect(fake.calls.at(-1)).toEqual(['$_addNewElement', 'button', 'auto']);
+  });
+
+  it("does not touch Bricks' insertAfter flag", () => {
+    const { fake, bricks, heading } = setup();
     bricks.selection.set(heading.id);
-    expect(() => bricks.elements.insert('heading', { position: 'outside' })).toThrow('bricks failed');
+    bricks.elements.insert('heading', { position: 'outside' });
+    bricks.elements.insert('heading');
     expect(fake.state.insertAfter).toBe(false);
   });
 

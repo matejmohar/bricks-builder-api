@@ -171,14 +171,27 @@ export function createFakeBricks(options: FakeOptions = {}): FakeBricks {
     $_isNestable: (el: RawElement) => NESTABLE.has(el?.name),
     $_getElementConfig: (name: string) => (KNOWN.has(name) ? { name, label: name } : { label: name }),
     $_createElement: ({ name }: { name: string }) => ({ id: genId(), name, parent: 0, children: [], settings: {} }),
-    $_addNewElement({ element }: { element: RawElement }) {
-      calls.push(['$_addNewElement', element.name, state.insertAfter]);
+    $_addNewElement({
+      element,
+      parent: explicitParent,
+      index: explicitIndex,
+      isDropTarget,
+    }: {
+      element: RawElement;
+      parent?: string | 0;
+      index?: number;
+      isDropTarget?: boolean;
+    }) {
+      calls.push(['$_addNewElement', element.name, isDropTarget ? { parent: explicitParent, index: explicitIndex } : 'auto']);
       // Like Bricks: re-creates the element with a fresh id.
       const el: RawElement = { ...element, id: genId(), children: [] };
       const d = activeElement();
       let parent: string | 0 = 0;
       let index = roots().length;
-      if (el.name === 'section') {
+      if (isDropTarget) {
+        parent = el.name === 'section' ? 0 : (explicitParent ?? 0);
+        index = explicitIndex ?? 0;
+      } else if (el.name === 'section') {
         parent = 0;
       } else if (d) {
         if (NESTABLE.has(d.name)) {
@@ -189,7 +202,7 @@ export function createFakeBricks(options: FakeOptions = {}): FakeBricks {
           index = siblingsOf(d).indexOf(d.id) + 1;
         }
       }
-      if (state.insertAfter) {
+      if (state.insertAfter && !isDropTarget) {
         const p = parent ? byId(parent) : undefined;
         if (p) parent = p.parent ? String(p.parent) : 0;
         if (!parent && d) index = roots().findIndex((e) => e.id === d.id) + 1;

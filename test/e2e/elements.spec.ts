@@ -46,20 +46,65 @@ test.describe('elements', () => {
     expect(await page.evaluate(() => window.bricks.selection.get()?.id)).toBe('headon');
   });
 
-  test("insert() with position 'outside' goes to the grandparent", async ({ page, builder }) => {
+  test("insert() 'outside' a leaf goes right after the leaf's parent", async ({ page, builder }) => {
     void builder;
-    await page.evaluate(() => window.bricks.selection.set('txtone'));
+    await page.evaluate(() => window.bricks.selection.set('headon'));
     await expectUndoableAction(
       page,
       () => page.evaluate(() => window.bricks.elements.insert('heading', { position: 'outside' })),
       ({ result, after }) => {
-        // txtone's parent is blkone; its grandparent is conone.
+        // headon's parent is conone; conone's parent is secone.
+        expect(result.parentId).toBe('secone');
+        expect(byId(after, 'secone')!.children).toEqual(['conone', result.id]);
+        expect(byId(after, 'conone')!.children).toEqual(['headon', 'butone', 'blkone']);
+      },
+    );
+    expect(await page.evaluate(() => window.bricks.selection.get()?.id)).toBe('headon');
+  });
+
+  test("insert() 'outside' a nested leaf", async ({ page, builder }) => {
+    void builder;
+    await page.evaluate(() => window.bricks.selection.set('txtone'));
+    await expectUndoableAction(
+      page,
+      () => page.evaluate(() => window.bricks.elements.insert('button', { position: 'outside' })),
+      ({ result, after }) => {
         expect(result.parentId).toBe('conone');
-        expect(byId(after, 'conone')!.children).toContain(result.id);
+        expect(byId(after, 'conone')!.children).toEqual(['headon', 'butone', 'blkone', result.id]);
         expect(byId(after, 'blkone')!.children).toEqual(['txtone']);
       },
     );
-    expect(await page.evaluate(() => window.bricks.unstable.state.insertAfter)).toBe(false);
+  });
+
+  test("insert() 'outside' a selected nestable goes right after it", async ({ page, builder }) => {
+    void builder;
+    await page.evaluate(() => window.bricks.selection.set('blkone'));
+    await page.evaluate(() => window.bricks.elements.insert('heading', { position: 'outside' }));
+    await settle(page);
+    await page.evaluate(() => window.bricks.selection.set('butone'));
+    await page.evaluate(() => window.bricks.selection.set('conone'));
+    // conone is nestable: new element directly after it in secone (not inside).
+    await expectUndoableAction(
+      page,
+      () => page.evaluate(() => window.bricks.elements.insert('block', { position: 'outside' })),
+      ({ result, after }) => {
+        expect(result.parentId).toBe('secone');
+        expect(byId(after, 'secone')!.children).toEqual(['conone', result.id]);
+      },
+    );
+  });
+
+  test("insert() 'outside' a root section goes right after it at root", async ({ page, builder }) => {
+    void builder;
+    await page.evaluate(() => window.bricks.selection.set('secone'));
+    await expectUndoableAction(
+      page,
+      () => page.evaluate(() => window.bricks.elements.insert('block', { position: 'outside' })),
+      ({ result, after }) => {
+        expect(result.parentId).toBeNull();
+        expect(after.filter((n) => n.parent === null).map((n) => n.id)).toEqual(['secone', result.id, 'sectwo']);
+      },
+    );
   });
 
   test('insert() with no selection appends at root; section creates a container', async ({ page, builder }) => {
@@ -131,7 +176,7 @@ test.describe('elements', () => {
     );
   });
 
-  test('delete() the selection; selection moves', async ({ page, builder }) => {
+  test('delete() the selection', async ({ page, builder }) => {
     void builder;
     await page.evaluate(() => window.bricks.selection.set('butone'));
     await expectUndoableAction(
@@ -142,6 +187,24 @@ test.describe('elements', () => {
         expect(byId(after, 'conone')!.children).toEqual(['headon', 'blkone']);
       },
     );
+  });
+
+  test('delete(): Bricks selects the next sibling a tick later; onChange reports it once', async ({ page, builder }) => {
+    void builder;
+    await page.evaluate(() => {
+      window.bricks.selection.set('butone');
+      window.__seen = [];
+    });
+    await page.waitForTimeout(50);
+    const immediately = await page.evaluate(() => {
+      window.bricks.selection.onChange((n, p) => window.__seen.push([n?.id ?? null, p?.id ?? null]));
+      window.bricks.elements.delete();
+      return window.bricks.selection.get();
+    });
+    expect(immediately).toBeNull(); // stale activeId is reported as no selection
+    await expect.poll(() => page.evaluate(() => window.bricks.selection.get()?.id)).toBe('blkone');
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => window.__seen)).toEqual([['blkone', 'butone']]);
   });
 
   test('delete() by id removes children too', async ({ page, builder }) => {

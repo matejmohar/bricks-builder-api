@@ -10,8 +10,9 @@ export interface SelectionApi {
   set(id: ElementId | null): ElementInfo | null;
   /**
    * Calls `listener(next, prev)` whenever the selection changes (from the API,
-   * the canvas, the Structure panel, ...). Bricks batches changes, so the
-   * listener runs asynchronously, once per tick. Returns an unsubscribe function.
+   * the canvas, the Structure panel, ...). Runs asynchronously (next macrotask)
+   * with the then-current selection, so rapid or transient changes collapse
+   * into one call. Returns an unsubscribe function.
    */
   onChange(listener: SelectionListener): Unsubscribe;
   /** Selects the parent of the selection. Returns it, or null (selection unchanged) at root level. */
@@ -81,19 +82,32 @@ export function createSelection(ctx: Context): SelectionApi {
     onChange(listener) {
       ctx.require('selection.onChange');
       let last: ElementInfo | null = get();
-      return driver.watchActiveId((nextId) => {
-        const nextEl = nextId ? driver.findElement(nextId) : undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      // Deliver on the next macrotask with the then-current selection, so that
+      // transient states (e.g. the stale id Bricks keeps for a tick after a
+      // delete before selecting the next element) collapse into one event.
+      const deliver = (): void => {
+        timer = undefined;
+        const nextEl = ctx.selected();
         const next = nextEl ? ctx.info(nextEl) : null;
         const prev = last;
-        last = next;
         if (next?.id === prev?.id) return;
+        last = next;
         try {
           listener(next, prev);
         } catch (err) {
           // Never let a listener break Bricks' own watchers.
           console.error('[bricks-builder-api] selection.onChange listener threw', err);
         }
+      };
+      const stop = driver.watchActiveId(() => {
+        if (timer === undefined) timer = setTimeout(deliver, 0);
       });
+      return () => {
+        stop();
+        if (timer !== undefined) clearTimeout(timer);
+        timer = undefined;
+      };
     },
     parent() {
       const el = current('selection.parent');

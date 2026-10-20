@@ -64,11 +64,11 @@ describe('selection', () => {
     const seen: Array<[string | null, string | null]> = [];
     const off = bricks.selection.onChange((next, prev) => seen.push([next?.id ?? null, prev?.id ?? null]));
     bricks.selection.set(heading.id);
-    await tick();
+    await tick(5);
     fake.state.activeId = button.id; // e.g. a canvas click
-    await tick();
+    await tick(5);
     bricks.selection.set(null);
-    await tick();
+    await tick(5);
     expect(seen).toEqual([
       [heading.id, null],
       [button.id, heading.id],
@@ -76,7 +76,7 @@ describe('selection', () => {
     ]);
     off();
     bricks.selection.set(heading.id);
-    await tick();
+    await tick(5);
     expect(seen).toHaveLength(3);
   });
 
@@ -86,8 +86,44 @@ describe('selection', () => {
     const seen: any[] = [];
     bricks.selection.onChange((next, prev) => seen.push([next?.id, prev?.name]));
     bricks.elements.delete();
-    await tick();
+    await tick(5);
     expect(seen).toEqual([[container.id, 'button']]);
+  });
+
+  it('onChange() follows the effective selection (stale activeId counts as none)', async () => {
+    const { bricks, fake, heading } = setup();
+    bricks.selection.set(heading.id);
+    await tick(5);
+    const seen: any[] = [];
+    bricks.selection.onChange((next, prev) => seen.push([next?.id ?? null, prev?.id ?? null]));
+    // Element disappears while activeId still points at it.
+    fake.state.content = fake.state.content.filter((e: any) => e.id !== heading.id);
+    await tick(5);
+    expect(seen).toEqual([[null, heading.id]]);
+  });
+
+  it('onChange() collapses transient changes into one call', async () => {
+    const { bricks, fake, heading, button } = setup();
+    const seen: any[] = [];
+    bricks.selection.onChange((next, prev) => seen.push([next?.id ?? null, prev?.id ?? null]));
+    bricks.selection.set(heading.id);
+    await Promise.resolve();
+    fake.state.activeId = null;
+    await Promise.resolve();
+    bricks.selection.set(button.id);
+    await tick(5);
+    expect(seen).toEqual([[button.id, null]]);
+  });
+
+  it('onChange() unsubscribe cancels a pending delivery', async () => {
+    const { bricks, heading } = setup();
+    const seen: any[] = [];
+    const off = bricks.selection.onChange((n) => seen.push(n?.id));
+    bricks.selection.set(heading.id);
+    await Promise.resolve();
+    off();
+    await tick(5);
+    expect(seen).toEqual([]);
   });
 
   it('onChange() isolates listener errors', async () => {
@@ -99,7 +135,7 @@ describe('selection', () => {
     });
     bricks.selection.onChange(good);
     bricks.selection.set(heading.id);
-    await tick();
+    await tick(5);
     expect(good).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
