@@ -1,5 +1,8 @@
 import { expect, test } from './fixtures';
+import { readFileSync } from 'node:fs';
 import { IIFE_PATH } from './helpers';
+
+const ESM_PATH = IIFE_PATH.replace('bricks-builder-api.iife.js', 'index.js');
 
 test.describe('connect', () => {
   test('connects to the builder and reports version and capabilities', async ({ page, builder }) => {
@@ -46,5 +49,19 @@ test.describe('connect', () => {
       return b.version;
     });
     expect(version).toBe(await page.evaluate(() => window.bricks.version));
+  });
+
+  test('the ESM build works in the builder too', async ({ page, builder }) => {
+    void builder;
+    await page.route('**/__e2e_esm/index.js', (route) =>
+      route.fulfill({ contentType: 'text/javascript', body: readFileSync(ESM_PATH, 'utf8') }),
+    );
+    const r = await page.evaluate(async () => {
+      const mod = await import('/__e2e_esm/index.js' as string);
+      const b = await mod.connect({ timeout: 5000 });
+      b.selection.set('headon');
+      return { version: b.version, selected: b.selection.get()?.id, err: new mod.NoSelectionError('x').name };
+    });
+    expect(r).toEqual({ version: await page.evaluate(() => window.bricks.version), selected: 'headon', err: 'NoSelectionError' });
   });
 });
