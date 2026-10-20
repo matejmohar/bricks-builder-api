@@ -1,0 +1,65 @@
+{
+  "selection.get": {
+    "2.4.3": "pass"
+  },
+  "selection.set": {
+    "2.4.3": "pass"
+  },
+  "selection.onChange": {
+    "2.4.3": "pass"
+  },
+  "selection.navigate": {
+    "2.4.3": "pass"
+  },
+  "elements.get": {
+    "2.4.3": "pass"
+  },
+  "elements.insert": {
+    "2.4.3": "pass"
+  },
+  "elements.duplicate": {
+    "2.4.3": "pass"
+  },
+  "elements.delete": {
+    "2.4.3": "pass"
+  },
+  "elements.wrap": {
+    "2.4.3": "pass"
+  },
+  "elements.rename": {
+    "2.4.3": "pass"
+  },
+  "clipboard.copy": {
+    "2.4.3": "pass"
+  },
+  "clipboard.paste": {
+    "2.4.3": "pass"
+  },
+  "history.undo": {
+    "2.4.3": "pass"
+  },
+  "history.redo": {
+    "2.4.3": "pass"
+  },
+  "document.save": {
+    "2.4.3": "pass"
+  },
+  "document.unsavedChanges": {
+    "2.4.3": "pass"
+  },
+  "ui.isTyping": {
+    "2.4.3": "pass"
+  },
+  "ui.commandPalette": {
+    "2.4.3": "pass"
+  },
+  "ui.showPanel": {
+    "2.4.3": "pass"
+  },
+  "ui.breakpoints": {
+    "2.4.3": "pass"
+  },
+  "ui.toggleClasses": {
+    "2.4.3": "pass"
+  }
+}
