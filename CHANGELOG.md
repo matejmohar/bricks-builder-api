@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/) (the `unstable` escape hatch is excluded from semver).
 
+## [Unreleased]
+
+### Fixed
+
+- Actions called after the user clicked in the canvas (selection, insert, duplicate, delete, wrap,
+  rename, paste, undo/redo, save and the UI toggles) were applied to the builder's data but not
+  rendered in the canvas, and were missing from Bricks' undo history and unsaved changes. Bricks
+  only records and syncs changes whose `$_state.messageOrigin` is the builder window; the 2.4
+  adapter now claims it before every state change.
+
 ## [0.1.0] - 2026-10-20
 
 First release. Supports Bricks 2.4 (verified on 2.4.3).

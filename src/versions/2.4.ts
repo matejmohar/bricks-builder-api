@@ -89,6 +89,20 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
   const bricksData = (): RawBricksData =>
     ((win as unknown as { bricksData?: RawBricksData }).bricksData ?? {}) as RawBricksData;
 
+  /**
+   * Bricks runs two synced Vue apps, one in the builder window and one in the canvas iframe, and
+   * `$_state.messageOrigin` records which one the user last interacted with. The builder window's
+   * history watcher and its state sync to the canvas only act on changes made while it is
+   * `'main'` (Bricks' own builder-window mousedown/focus handlers set it). The library always
+   * acts through the builder window's app, so it claims the origin before changing anything:
+   * otherwise, after a click in the canvas, changes are neither rendered in the canvas nor
+   * recorded in history / unsaved changes.
+   */
+  const fromBuilderWindow = (): void => {
+    const s = state();
+    if ('messageOrigin' in s && s.messageOrigin !== 'main') s.messageOrigin = 'main';
+  };
+
   const allElements = (): RawElement[] => {
     const dyn = ref<RawElement[]>('$_dynamicElements');
     if (Array.isArray(dyn)) return dyn;
@@ -105,6 +119,7 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
       return normalizeId(state().activeId);
     },
     setActiveId(id) {
+      fromBuilderWindow();
       const s = state();
       // A plain selection replaces any multi-selection, like a normal click does.
       if (Array.isArray(s.selectedElements) && s.selectedElements.length) s.selectedElements = [];
@@ -146,6 +161,7 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
     },
 
     insertElement(name, placement) {
+      fromBuilderWindow();
       const element = call('$_createElement', { name });
       // $_addNewElement re-creates the element (new id) and returns the inserted one.
       if (!placement) return call('$_addNewElement', { element }) as RawElement | undefined;
@@ -161,14 +177,17 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
     },
     canClone: (el) => !!call('$_isCloneable', el),
     cloneElement(el, index) {
+      fromBuilderWindow();
       call('$_cloneElement', { element: el, index });
     },
     canDelete: (el) => !!call('$_isDeletable', el),
     deleteElement(el) {
+      fromBuilderWindow();
       // Must be the element object; an id is silently ignored by Bricks.
       call('$_deleteElement', el);
     },
     wrapActive(tag) {
+      fromBuilderWindow();
       call('$_wrapInNestable', null, tag);
     },
     defaultWrapTag() {
@@ -176,6 +195,7 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
       return WRAP_TAGS.includes(tag as WrapTag) ? (tag as WrapTag) : 'block';
     },
     setLabel(el, label) {
+      fromBuilderWindow();
       if (label === null || label === '') delete el.label;
       else el.label = label;
     },
@@ -185,9 +205,11 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
       return !!nav && !!nav.clipboard && win.isSecureContext !== false;
     },
     copySelection() {
+      fromBuilderWindow();
       call('$_copyElements');
     },
     pasteFromClipboard() {
+      fromBuilderWindow();
       call('$_pasteElements');
     },
 
@@ -200,10 +222,12 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
       };
     },
     goto(direction) {
+      fromBuilderWindow();
       call('$_goto', direction);
     },
 
     save() {
+      fromBuilderWindow();
       const asyncSave = fn('$_savePostAsync');
       if (asyncSave) return asyncSave() as Promise<void>;
       call('$_savePost');
@@ -223,9 +247,11 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
     canvasIframe: () => win.document.querySelector<HTMLIFrameElement>('#bricks-builder-iframe'),
     isCommandPaletteOpen: () => !!state().showCommandPalette,
     setCommandPaletteOpen(open) {
+      fromBuilderWindow();
       state().showCommandPalette = open;
     },
     showPanel(panel) {
+      fromBuilderWindow();
       call('$_showPanel', { panel });
     },
     breakpoints() {
@@ -234,10 +260,12 @@ export function createDriver(gp: RawGlobalProperties, win: Window): Driver {
     },
     activeBreakpoint: () => (typeof state().breakpointActive === 'string' ? (state().breakpointActive as string) : null),
     setActiveBreakpoint(key) {
+      fromBuilderWindow();
       state().breakpointActive = key;
     },
     classesVisible: () => !!state().showElementClasses,
     setClassesVisible(visible) {
+      fromBuilderWindow();
       state().showElementClasses = visible;
     },
   };

@@ -71,6 +71,7 @@ export function createFakeBricks(options: FakeOptions = {}): FakeBricks {
     unsavedChanges: [],
     isSaving: false,
     isInlineEditing: false,
+    messageOrigin: 'main',
     iframeLoaded: options.iframeLoaded ?? true,
     showCommandPalette: false,
     showElementClasses: false,

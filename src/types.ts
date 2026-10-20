@@ -183,6 +183,8 @@ export interface RawState {
   breakpoints?: RawBreakpoint[];
   breakpointActive?: string;
   activePanel?: string;
+  /** Which of Bricks' two apps the last interaction came from: 'main' (builder window) or 'iframe' (canvas). */
+  messageOrigin?: string;
   [key: string]: unknown;
 }
 
